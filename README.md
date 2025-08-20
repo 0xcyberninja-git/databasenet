@@ -39,7 +39,7 @@ A comprehensive web application for tracking and managing incoming calls with fo
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone (https://github.com/0xcyberninja-git/databasenet)
 cd call-followup-tracker
 ```
 
@@ -74,8 +74,8 @@ cp env.example .env
 Edit the `.env` file with your database credentials:
 
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/calltracker
-JWT_SECRET=your-super-secret-jwt-key-here
+DATABASE_URL=postgresql://database_connect_user:YAsxlWzQdbWRj2FOCAdg3CcouYgxJ7dc@dpg-d2iqb56r433s73e45edg-a/database_connect
+JWT_SECRET=YAsxlWzQdbWRj2FOCAdg3CcouYgxJ7dc
 NODE_ENV=development
 PORT=3000
 ```
