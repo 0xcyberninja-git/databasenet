@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Follow-Up Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .modal { transition: opacity 0.3s ease; }
+        .ct-filter-card { transition: all 0.2s ease-in-out; cursor: pointer; }
+        .ct-filter-card.active { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .quick-filter-btn.active { background-color: rgb(99 102 241); color: #fff; border-color: rgb(99 102 241); }
+        .overdue { background-color: rgb(254 242 242); border-left: 4px solid rgb(239 68 68); }
+        .urgent { background-color: rgb(254 242 242); border-left: 4px solid rgb(220 38 38); }
+        .high-priority { background-color: rgb(255 247 237); border-left: 4px solid rgb(251 146 60); }
+        
+        /* Dropdown with delete functionality */
+        .dropdown-container {
+            position: relative;
+        }
+        
+        .dropdown-with-delete {
+            position: relative;
+        }
+        
+        .dropdown-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            display: none;
+        }
+        
+        .dropdown-options.show {
+            display: block;
+        }
+        
+        .dropdown-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.15s ease;
+        }
+        
+        .dropdown-option:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .dropdown-option.selected {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        .dropdown-option-text {
+            flex: 1;
+        }
+        
+        .dropdown-delete-btn {
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        
+        .dropdown-option:hover .dropdown-delete-btn {
+            opacity: 1;
+        }
+        
+        .dropdown-delete-btn:hover {
+            background: #dc2626;
+        }
+        
+        .custom-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 32px;
+        }
+        
+        /* File attachment styles */
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+        
+        .file-item:hover {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .file-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            color: #64748b;
+        }
+        
+        .file-name {
+            font-size: 14px;
+            color: #374151;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 8px;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+        
+        .file-remove {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        
+        .file-remove:hover {
+            background: #dc2626;
+        }
+        
+        .attachment-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        
+        .attachment-link {
+            color: #0369a1;
+            text-decoration: none;
+            font-size: 13px;
+            margin-left: 6px;
+        }
+        
+        .attachment-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* File preview styles */
+        .file-preview-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #f9fafb;
+        }
+        
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        
+        .file-preview-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .file-preview-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-preview-content {
+            flex: 1;
+            margin-left: 8px;
+        }
+        
+        .file-preview-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+        
+        .file-preview-size {
+            font-size: 11px;
+            color: #6b7280;
+        }
+        
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .preview-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .preview-header {
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-close {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .preview-body {
+            padding: 16px;
+            max-height: calc(90vh - 60px);
+            overflow: auto;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .preview-text {
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .upload-progress {
+            width: 100%;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .upload-progress-bar {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="min-h-screen bg-gray-100 flex flex-col">
+        <!-- Main Header -->
+        <div class="py-8 text-center">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">Call Follow-Up Tracker</h1>
+            <p class="text-gray-500 text-lg">Log and manage incoming calls to ensure timely follow-ups.</p>
+        </div>
+        <!-- Log a New Call Form -->
+        <div class="flex-1 flex flex-col items-center justify-start">
+            <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-xl mb-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Log a New Call</h2>
+                <form id="ct-add-call-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label for="ct-caller-name" class="block text-sm font-medium text-gray-700">Caller's Name</label>
+                        <input type="text" id="ct-caller-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="ct-caller-number" class="block text-sm font-medium text-gray-700">Caller's Number</label>
+                        <input type="text" id="ct-caller-number" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="ct-person-to-contact" class="block text-sm font-medium text-gray-700">Person to Contact</label>
+                        <div class="flex gap-2">
+                            <div class="dropdown-container flex-1">
+                                <input type="text" id="ct-person-to-contact" required readonly placeholder="Select a person..." class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm custom-select cursor-pointer">
+                                <div id="ct-person-options" class="dropdown-options"></div>
+                            </div>
+                            <button type="button" id="add-person-btn" class="mt-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="ct-operator-name" class="block text-sm font-medium text-gray-700">Operator</label>
+                        <div class="flex gap-2">
+                            <div class="dropdown-container flex-1">
+                                <input type="text" id="ct-operator-name" required readonly placeholder="Select an operator..." class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm custom-select cursor-pointer">
+                                <div id="ct-operator-options" class="dropdown-options"></div>
+                            </div>
+                            <button type="button" id="add-operator-btn" class="mt-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="ct-priority" class="block text-sm font-medium text-gray-700">Priority</label>
+                        <select id="ct-priority" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm">
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Low">Low</option>
+                            <option value="High">High</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="ct-call-note" class="block text-sm font-medium text-gray-700">Note</label>
+                        <textarea id="ct-call-note" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm"></textarea>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out text-lg font-semibold">Add Call</button>
+                    </div>
+                </form>
+            </div>
+            <!-- Call Log Section -->
+            <div class="bg-white p-6 rounded-xl shadow-md max-w-6xl w-full mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button class="px-4 py-1 rounded-full border border-indigo-500 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-sm">Today's Calls</button>
+                        <button class="px-4 py-1 rounded-full border border-red-500 text-red-600 bg-red-50 hover:bg-red-100 text-sm">Urgent</button>
+                        <button class="px-4 py-1 rounded-full border border-orange-500 text-orange-600 bg-orange-50 hover:bg-orange-100 text-sm">Overdue Follow-ups</button>
+                        <button class="px-4 py-1 rounded-full border border-gray-300 text-gray-600 bg-gray-50 hover:bg-gray-100 text-sm">Clear Filters</button>
+                    </div>
+                    <div class="flex gap-4 items-center">
+                        <label for="date-range" class="text-sm font-medium text-gray-700">Date Range:</label>
+                        <select id="date-range" class="border border-gray-300 rounded-md px-2 py-1 text-sm">
+                            <option>All Time</option>
+                            <option>Today</option>
+                            <option>This Week</option>
+                            <option>This Month</option>
+                        </select>
+                        <div class="relative">
+                            <input type="text" placeholder="Search calls by name, number, or notes..." class="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <span class="absolute left-2 top-1.5 text-gray-400"><i class="fas fa-search"></i></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Status Summary Cards -->
+                <div class="flex flex-wrap gap-4 mb-4">
+                    <div class="flex-1 min-w-[120px] bg-blue-50 border border-blue-200 rounded-lg p-4 text-center cursor-pointer hover:bg-blue-100 transition-colors status-card" data-status="Active">
+                        <div class="text-xs text-blue-600 font-semibold">Active Calls</div>
+                        <div class="text-2xl font-bold text-blue-700" id="active-count">0</div>
+                    </div>
+                    <div class="flex-1 min-w-[120px] bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center cursor-pointer hover:bg-yellow-100 transition-colors status-card" data-status="Pending">
+                        <div class="text-xs text-yellow-600 font-semibold">Pending</div>
+                        <div class="text-2xl font-bold text-yellow-700" id="pending-count">0</div>
+                    </div>
+                    <div class="flex-1 min-w-[120px] bg-green-50 border border-green-200 rounded-lg p-4 text-center cursor-pointer hover:bg-green-100 transition-colors status-card" data-status="Followed Up">
+                        <div class="text-xs text-green-600 font-semibold">Followed Up</div>
+                        <div class="text-2xl font-bold text-green-700" id="followed-up-count">0</div>
+                    </div>
+                    <div class="flex-1 min-w-[120px] bg-red-50 border border-red-200 rounded-lg p-4 text-center cursor-pointer hover:bg-red-100 transition-colors status-card" data-status="Not Received Call">
+                        <div class="text-xs text-red-600 font-semibold">Not Received</div>
+                        <div class="text-2xl font-bold text-red-700" id="not-received-count">0</div>
+                    </div>
+                    <div class="flex-1 min-w-[120px] bg-gray-100 border border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-200 transition-colors status-card" data-status="Completed">
+                        <div class="text-xs text-gray-600 font-semibold">Completed</div>
+                        <div class="text-2xl font-bold text-gray-700" id="completed-count">0</div>
+                    </div>
+                </div>
+                <!-- Call Log Table -->
+                <div class="overflow-y-auto max-h-96">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CALLER DETAILS</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TIMESTAMP<br><span class="font-normal">Call added</span></th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RESPONSE TIME<br><span class="font-normal">Time to respond</span></th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NOTE</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ct-call-log-body" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0lfSfsS2oGIuWxao9A62jXs5_cxdxkYA",
+            authDomain: "callfollowup-15d8b-337f8.firebaseapp.com",
+            projectId: "callfollowup-15d8b-337f8",
+            storageBucket: "callfollowup-15d8b-337f8.appspot.com",
+            messagingSenderId: "566255956834",
+            appId: "1:566255956834:web:67142ff3b9c3b38e79b23b",
+            measurementId: "G-5HJ81Y34EP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        let currentUserId = null;
+
+        const callLogBody = document.getElementById('ct-call-log-body');
+        const addCallForm = document.getElementById('ct-add-call-form');
+        const personToContactInput = document.getElementById('ct-person-to-contact');
+        const operatorNameInput = document.getElementById('ct-operator-name');
+        const personToContactOptions = document.getElementById('ct-person-options');
+        const operatorNameOptions = document.getElementById('ct-operator-options');
+        const addPersonBtn = document.getElementById('add-person-btn');
+        const addOperatorBtn = document.getElementById('add-operator-btn');
+        
+        let allCalls = [];
+        let filteredCalls = [];
+        
+        // Load saved dropdown options from localStorage
+        function loadDropdownOptions() {
+            const savedPersons = JSON.parse(localStorage.getItem('persons') || '[]');
+            const savedOperators = JSON.parse(localStorage.getItem('operators') || '[]');
+            
+            populateDropdown(personToContactOptions, savedPersons, 'person');
+            populateDropdown(operatorNameOptions, savedOperators, 'operator');
+        }
+        
+        // Populate dropdown with options and delete buttons
+        function populateDropdown(optionsContainer, options, type) {
+            optionsContainer.innerHTML = '';
+            
+            options.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'dropdown-option';
+                optionDiv.setAttribute('data-value', option);
+                optionDiv.setAttribute('data-type', type);
+                
+                optionDiv.innerHTML = `
+                    <span class="dropdown-option-text">${option}</span>
+                    <button class="dropdown-delete-btn" data-value="${option}" data-type="${type}" title="Delete ${option}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+        
+        // Add new person or operator
+        function addDropdownOption(type) {
+            const name = prompt(`Enter ${type} name:`);
+            if (name && name.trim()) {
+                const trimmedName = name.trim();
+                const storageKey = type === 'person' ? 'persons' : 'operators';
+                const optionsContainer = type === 'person' ? personToContactOptions : operatorNameOptions;
+                
+                const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                if (!existing.includes(trimmedName)) {
+                    existing.push(trimmedName);
+                    localStorage.setItem(storageKey, JSON.stringify(existing));
+                    populateDropdown(optionsContainer, existing, type);
+                }
+            }
+        }
+        
+        // Delete dropdown option with confirmation
+        function deleteDropdownOption(optionValue, type) {
+            if (confirm(`Are you sure you want to delete "${optionValue}"?`)) {
+                const storageKey = type === 'person' ? 'persons' : 'operators';
+                const optionsContainer = type === 'person' ? personToContactOptions : operatorNameOptions;
+                const inputElement = type === 'person' ? personToContactInput : operatorNameInput;
+                
+                const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                const updated = existing.filter(item => item !== optionValue);
+                localStorage.setItem(storageKey, JSON.stringify(updated));
+                populateDropdown(optionsContainer, updated, type);
+                
+                // Clear the input if the deleted option was selected
+                if (inputElement.value === optionValue) {
+                    inputElement.value = '';
+                }
+            }
+        }
+        
+        // File handling functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function getFileIcon(fileName) {
+            const extension = fileName.split('.').pop().toLowerCase();
+            const iconMap = {
+                'pdf': 'fas fa-file-pdf',
+                'doc': 'fas fa-file-word',
+                'docx': 'fas fa-file-word',
+                'xls': 'fas fa-file-excel',
+                'xlsx': 'fas fa-file-excel',
+                'ppt': 'fas fa-file-powerpoint',
+                'pptx': 'fas fa-file-powerpoint',
+                'jpg': 'fas fa-file-image',
+                'jpeg': 'fas fa-file-image',
+                'png': 'fas fa-file-image',
+                'gif': 'fas fa-file-image',
+                'mp4': 'fas fa-file-video',
+                'avi': 'fas fa-file-video',
+                'mov': 'fas fa-file-video',
+                'mp3': 'fas fa-file-audio',
+                'wav': 'fas fa-file-audio',
+                'txt': 'fas fa-file-alt',
+                'zip': 'fas fa-file-archive',
+                'rar': 'fas fa-file-archive'
+            };
+            return iconMap[extension] || 'fas fa-file';
+        }
+        
+        // Comment attachment handling
+        const commentSelectedFiles = new Map(); // Map to store selected files for each call
+        
+        function displayCommentSelectedFiles(callId) {
+            const selectedFilesContainer = document.querySelector(`.comment-selected-files-${callId}`);
+            const fileCount = document.querySelector(`.comment-file-count-${callId}`);
+            const files = commentSelectedFiles.get(callId) || [];
+            
+            selectedFilesContainer.innerHTML = '';
+            
+            if (files.length === 0) {
+                fileCount.textContent = 'No files selected';
+                return;
+            }
+            
+            fileCount.textContent = `${files.length} file${files.length > 1 ? 's' : ''} selected`;
+            
+            // Create preview container
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'file-preview-container';
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-preview-item';
+                fileItem.innerHTML = `
+                    <i class="${getFileIcon(file.name)} text-blue-500"></i>
+                    <div class="file-preview-content">
+                        <div class="file-preview-name" title="${file.name}">${file.name}</div>
+                        <div class="file-preview-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button type="button" class="comment-file-remove bg-red-500 text-white rounded w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600" data-call-id="${callId}" data-index="${index}" title="Remove file">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                // Add click event for preview
+                fileItem.addEventListener('click', (e) => {
+                    if (!e.target.closest('.comment-file-remove')) {
+                        previewFile(file);
+                    }
+                });
+                
+                previewContainer.appendChild(fileItem);
+            });
+            
+            selectedFilesContainer.appendChild(previewContainer);
+        }
+        
+        function removeCommentFile(callId, index) {
+            const files = commentSelectedFiles.get(callId) || [];
+            files.splice(index, 1);
+            commentSelectedFiles.set(callId, files);
+            displayCommentSelectedFiles(callId);
+        }
+        
+        // File preview function
+        function previewFile(file) {
+            const modal = document.createElement('div');
+            modal.className = 'preview-modal';
+            modal.innerHTML = `
+                <div class="preview-content">
+                    <div class="preview-header">
+                        <span class="font-medium text-gray-900">${file.name}</span>
+                        <button class="preview-close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="preview-body">
+                        <div id="preview-content-area">Loading preview...</div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            
+            // Close modal events
+            modal.querySelector('.preview-close').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                document.body.style.overflow = 'auto';
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Generate preview content
+            const previewArea = modal.querySelector('#preview-content-area');
+            const fileType = file.type.toLowerCase();
+            
+            if (fileType.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewArea.innerHTML = `<img src="${e.target.result}" class="preview-image" alt="${file.name}">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (fileType.startsWith('text/') || fileType === 'application/json') {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewArea.innerHTML = `<pre class="preview-text">${e.target.result}</pre>`;
+                };
+                reader.readAsText(file);
+            } else if (fileType === 'application/pdf') {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewArea.innerHTML = `
+                        <embed src="${e.target.result}" type="application/pdf" width="100%" height="500px">
+                        <p class="mt-4 text-center text-gray-600">
+                            <a href="${e.target.result}" target="_blank" class="text-blue-600 hover:underline">
+                                <i class="fas fa-external-link-alt mr-1"></i>Open in new tab
+                            </a>
+                        </p>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewArea.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="${getFileIcon(file.name)} text-6xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 mb-2">Preview not available for this file type</p>
+                        <p class="text-sm text-gray-500">File: ${file.name}</p>
+                        <p class="text-sm text-gray-500">Size: ${formatFileSize(file.size)}</p>
+                        <p class="text-sm text-gray-500">Type: ${file.type || 'Unknown'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Compress image files for faster upload
+        function compressImage(file, maxWidth = 1920, quality = 0.8) {
+            return new Promise((resolve) => {
+                if (!file.type.startsWith('image/')) {
+                    resolve(file);
+                    return;
+                }
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = () => {
+                    // Calculate new dimensions
+                    let { width, height } = img;
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw and compress
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(resolve, file.type, quality);
+                };
+                
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // Background file upload function
+        async function uploadFilesInBackground(callId, commentIndex, files, tempCommentId) {
+            try {
+                const uploadPromises = files.map(async (file, index) => {
+                    // Compress images for faster upload
+                    const processedFile = await compressImage(file);
+                    
+                    const fileName = `${Date.now()}_${commentIndex}_${index}_${file.name}`;
+                    const storageRef = ref(storage, `comment-attachments/${currentUserId}/${callId}/${fileName}`);
+                    
+                    try {
+                        const snapshot = await uploadBytes(storageRef, processedFile);
+                        const downloadURL = await getDownloadURL(snapshot.ref);
+                        
+                        return {
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            url: downloadURL,
+                            storagePath: snapshot.ref.fullPath,
+                            uploadedAt: new Date()
+                        };
+                    } catch (error) {
+                        console.error('Error uploading file:', error);
+                        return {
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            url: null,
+                            error: true,
+                            uploadedAt: new Date()
+                        };
+                    }
+                });
+                
+                const uploadedFiles = await Promise.all(uploadPromises);
+                
+                // Update the comment with actual file URLs
+                const currentCall = allCalls.find(call => call.id === callId);
+                if (currentCall && currentCall.commentHistory) {
+                    const updatedHistory = currentCall.commentHistory.map(comment => {
+                        if (comment.attachments && comment.attachments.some(att => att.tempId === tempCommentId)) {
+                            return {
+                                ...comment,
+                                attachments: uploadedFiles
+                            };
+                        }
+                        return comment;
+                    });
+                    
+                    // Update Firebase with actual file URLs
+                    const docRef = doc(db, `users/${currentUserId}/calls`, callId);
+                    await updateDoc(docRef, { 
+                        commentHistory: updatedHistory,
+                        lastUpdated: new Date()
+                    });
+                    
+                    // Show completion notification
+                    const completionMsg = document.createElement('div');
+                    completionMsg.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                    const successCount = uploadedFiles.filter(f => !f.error).length;
+                    const errorCount = uploadedFiles.filter(f => f.error).length;
+                    
+                    if (errorCount === 0) {
+                        completionMsg.textContent = `${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully!`;
+                    } else {
+                        completionMsg.textContent = `${successCount} uploaded, ${errorCount} failed`;
+                        completionMsg.className = 'fixed top-4 right-4 bg-orange-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                    }
+                    
+                    document.body.appendChild(completionMsg);
+                    setTimeout(() => {
+                        if (document.body.contains(completionMsg)) {
+                            document.body.removeChild(completionMsg);
+                        }
+                    }, 3000);
+                }
+                
+            } catch (error) {
+                console.error('Background upload error:', error);
+                
+                // Show error notification
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                errorMsg.textContent = 'File upload failed. Please try again.';
+                document.body.appendChild(errorMsg);
+                setTimeout(() => {
+                    if (document.body.contains(errorMsg)) {
+                        document.body.removeChild(errorMsg);
+                    }
+                }, 3000);
+            }
+        }
+
+        async function uploadCommentFiles(callId, commentIndex) {
+            const files = commentSelectedFiles.get(callId) || [];
+            if (files.length === 0) return [];
+            
+            // Upload files in parallel for better performance
+            const uploadPromises = files.map(async (file, index) => {
+                // Compress images for faster upload
+                const processedFile = await compressImage(file);
+                
+                const fileName = `${Date.now()}_${commentIndex}_${index}_${file.name}`;
+                const storageRef = ref(storage, `comment-attachments/${currentUserId}/${callId}/${fileName}`);
+                
+                try {
+                    const snapshot = await uploadBytes(storageRef, processedFile);
+                    const downloadURL = await getDownloadURL(snapshot.ref);
+                    
+                    return {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        url: downloadURL,
+                        storagePath: snapshot.ref.fullPath,
+                        uploadedAt: new Date()
+                    };
+                } catch (error) {
+                    console.error('Error uploading file:', error);
+                    return null;
+                }
+            });
+            
+            const uploadedFiles = await Promise.all(uploadPromises);
+            return uploadedFiles.filter(file => file !== null);
+        }
+        
+        // Search and filter functionality
+        function filterCalls() {
+            const searchTerm = document.querySelector('input[placeholder*="Search calls"]').value.toLowerCase();
+            const dateRange = document.getElementById('date-range').value;
+            
+            filteredCalls = allCalls.filter(call => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    call.callerName.toLowerCase().includes(searchTerm) ||
+                    call.callerNumber.includes(searchTerm) ||
+                    (call.note && call.note.toLowerCase().includes(searchTerm));
+                
+                // Date filter
+                let matchesDate = true;
+                if (dateRange !== 'All Time') {
+                    const callDate = call.createdAt?.toDate ? call.createdAt.toDate() : new Date(call.createdAt);
+                    const now = new Date();
+                    
+                    switch(dateRange) {
+                        case 'Today':
+                            matchesDate = callDate.toDateString() === now.toDateString();
+                            break;
+                        case 'This Week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            matchesDate = callDate >= weekAgo;
+                            break;
+                        case 'This Month':
+                            matchesDate = callDate.getMonth() === now.getMonth() && callDate.getFullYear() === now.getFullYear();
+                            break;
+                    }
+                }
+                
+                return matchesSearch && matchesDate;
+            });
+            
+            renderCallLog(filteredCalls);
+            updateStatusCards(allCalls);
+        }
+        
+        // Update status summary cards
+        function updateStatusCards(calls) {
+            const active = calls.filter(call => call.status === 'Active').length;
+            const pending = calls.filter(call => call.status === 'Pending').length;
+            const followedUp = calls.filter(call => call.status === 'Followed Up').length;
+            const notReceived = calls.filter(call => call.status === 'Not Received Call').length;
+            const completed = calls.filter(call => call.status === 'Completed').length;
+            
+            document.getElementById('active-count').textContent = active;
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('followed-up-count').textContent = followedUp;
+            document.getElementById('not-received-count').textContent = notReceived;
+            document.getElementById('completed-count').textContent = completed;
+        }
+        
+        // Filter calls by status when status card is clicked
+        function filterByStatus(status) {
+            // Clear other filters
+            document.querySelector('input[placeholder*="Search calls"]').value = '';
+            document.getElementById('date-range').value = 'All Time';
+            
+            // Remove active class from quick filter buttons
+            document.querySelectorAll('.px-4.py-1.rounded-full').forEach(btn => {
+                btn.classList.remove('active', 'bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-50', 'text-gray-600');
+            });
+            
+            // Remove active class from all status cards
+            document.querySelectorAll('.status-card').forEach(card => {
+                card.classList.remove('ring-2', 'ring-indigo-500');
+            });
+            
+            if (status === 'All') {
+                filteredCalls = [...allCalls];
+            } else {
+                filteredCalls = allCalls.filter(call => call.status === status);
+                // Add active styling to clicked card
+                document.querySelector(`[data-status="${status}"]`).classList.add('ring-2', 'ring-indigo-500');
+            }
+            
+            renderCallLog(filteredCalls);
+            updateStatusCards(allCalls); // Always show total counts
+        }
+
+        function renderCallLog(calls) {
+            callLogBody.innerHTML = '';
+            calls.forEach(call => {
+                const tr = document.createElement('tr');
+                const createdAt = call.createdAt?.toDate ? call.createdAt.toDate() : new Date(call.createdAt);
+                const responseTime = Math.floor((new Date() - createdAt) / (1000 * 60)); // minutes
+                
+                // Priority styling
+                let priorityClass = '';
+                if (call.priority === 'Urgent') priorityClass = 'bg-red-100 text-red-800';
+                else if (call.priority === 'High') priorityClass = 'bg-orange-100 text-orange-800';
+                else if (call.priority === 'Medium') priorityClass = 'bg-yellow-100 text-yellow-800';
+                else priorityClass = 'bg-gray-100 text-gray-800';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${call.callerName}</div>
+                        <div class="text-sm text-gray-500">${call.callerNumber}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${call.personToContact}</div>
+                        <div class="text-sm text-gray-500">Operator: ${call.operatorName}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${priorityClass}">
+                            ${call.priority}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div class="text-sm font-medium text-gray-900">${createdAt.toLocaleDateString()}</div>
+                        <div class="text-xs text-gray-500">${createdAt.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${responseTime < 60 ? responseTime + 'm' : Math.floor(responseTime/60) + 'h ' + (responseTime%60) + 'm'}
+                    </td>
+                    <td class="px-4 py-4 text-sm text-gray-500 max-w-xs">
+                        <div class="mb-2">
+                            <div class="text-sm text-gray-700">${call.note || 'No note'}</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button data-id="${call.id}" class="comment-btn px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none">
+                                Add Comment (${call.commentHistory ? call.commentHistory.length : '0'})
+                            </button>
+                        </div>
+                        
+                        <!-- Comment Modal/Popup (hidden by default) -->
+                        <div class="comment-modal-${call.id} hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Comments</h3>
+                                    <button data-id="${call.id}" class="close-comment-modal p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                        <i class="fas fa-times text-lg"></i>
+                                    </button>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="text-sm text-gray-600 mb-2">Call: ${call.callerName} - ${call.callerNumber}</div>
+                                    <div class="text-xs text-gray-500">Original Note: ${call.note || 'No note'}</div>
+                                </div>
+                                
+                                <!-- Comment History Display -->
+                                <div class="comment-history-${call.id} mb-4 max-h-64 overflow-y-auto">
+                                    ${call.commentHistory && call.commentHistory.length > 0 ? 
+                                        call.commentHistory.map((comment, index) => {
+                                            const commentDate = comment.timestamp?.toDate ? comment.timestamp.toDate() : new Date(comment.timestamp);
+                                            return `
+                                                <div class="comment-item mb-3 p-3 bg-gray-50 rounded border-l-4 border-blue-400 group hover:bg-gray-100 transition-colors relative">
+                                                    <div class="flex justify-between items-start">
+                                                        <div class="flex-1">
+                                                            <div class="text-xs text-gray-500 mb-1">
+                                                                ${commentDate.toLocaleDateString()} at ${commentDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                            </div>
+                                                            <div class="comment-text-${call.id}-${index} text-sm text-gray-700">${comment.text}</div>
+                                                            ${comment.attachments && comment.attachments.length > 0 ? `
+                                                                <div class="mt-2">
+                                                                    <div class="text-xs text-gray-600 mb-1">Attachments:</div>
+                                                                    <div class="space-y-1">
+                                                                        ${comment.attachments.map((attachment, attIndex) => `
+                                                                            <div class="attachment-item">
+                                                                                <i class="${getFileIcon(attachment.name)} ${attachment.uploading ? 'text-gray-400' : attachment.error ? 'text-red-500' : 'text-blue-500'}"></i>
+                                                                                ${attachment.uploading ? `
+                                                                                    <span class="text-gray-500 text-sm">
+                                                                                        ${attachment.name.length > 25 ? attachment.name.substring(0, 25) + '...' : attachment.name}
+                                                                                        <i class="fas fa-spinner fa-spin ml-1"></i>
+                                                                                    </span>
+                                                                                ` : attachment.error ? `
+                                                                                    <span class="text-red-500 text-sm" title="Upload failed">
+                                                                                        ${attachment.name.length > 25 ? attachment.name.substring(0, 25) + '...' : attachment.name}
+                                                                                        <i class="fas fa-exclamation-triangle ml-1"></i>
+                                                                                    </span>
+                                                                                ` : `
+                                                                                    <span class="attachment-link cursor-pointer hover:text-blue-700" data-attachment-url="${attachment.url}" data-attachment-name="${attachment.name}" data-attachment-type="${attachment.type || ''}" title="Click to preview ${attachment.name}">
+                                                                                        ${attachment.name.length > 25 ? attachment.name.substring(0, 25) + '...' : attachment.name}
+                                                                                    </span>
+                                                                                `}
+                                                                                <span class="text-xs text-gray-400">(${formatFileSize(attachment.size)})</span>
+                                                                                ${!attachment.uploading && !attachment.error ? `
+                                                                                    <a href="${attachment.url}" target="_blank" class="ml-2 text-xs text-blue-500 hover:text-blue-700" title="Download">
+                                                                                        <i class="fas fa-download"></i>
+                                                                                    </a>
+                                                                                ` : ''}
+                                                                            </div>
+                                                                        `).join('')}
+                                                                    </div>
+                                                                </div>
+                                                            ` : ''}
+                                                            <div class="comment-edit-${call.id}-${index} hidden mt-2">
+                                                                <textarea class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" rows="2">${comment.text}</textarea>
+                                                                <div class="flex gap-2 mt-2">
+                                                                    <button data-call-id="${call.id}" data-comment-index="${index}" class="save-edit-btn px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600">
+                                                                        <i class="fas fa-check mr-1"></i>Save
+                                                                    </button>
+                                                                    <button data-call-id="${call.id}" data-comment-index="${index}" class="cancel-edit-btn px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="comment-actions opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ml-2">
+                                                            <button data-call-id="${call.id}" data-comment-index="${index}" class="edit-comment-item-btn p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded" title="Edit comment">
+                                                                <i class="fas fa-edit text-xs"></i>
+                                                            </button>
+                                                            <button data-call-id="${call.id}" data-comment-index="${index}" class="delete-comment-item-btn p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded" title="Delete comment">
+                                                                <i class="fas fa-trash text-xs"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('') 
+                                        : '<div class="text-sm text-gray-500 text-center py-4">No comments yet. Add your first comment below.</div>'
+                                    }
+                                </div>
+                                
+                                <!-- Add New Comment -->
+                                <div class="border-t pt-4">
+                                    <div class="text-sm font-medium text-gray-700 mb-2">Add New Comment:</div>
+                                    <div class="comment-edit-${call.id} mb-4">
+                                        <textarea class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="3" placeholder="Add your comment..."></textarea>
+                                    </div>
+                                    
+                                    <!-- Attachment Section -->
+                                    <div class="mb-4">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <input type="file" id="comment-file-input-${call.id}" multiple accept="*/*" class="hidden">
+                                            <button type="button" class="comment-attachment-btn inline-flex items-center px-3 py-1 bg-gray-600 text-white text-xs font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out" data-call-id="${call.id}">
+                                                <i class="fas fa-paperclip mr-1"></i>
+                                                Add Attachment
+                                            </button>
+                                            <span class="comment-file-count-${call.id} text-xs text-gray-500">No files selected</span>
+                                        </div>
+                                        <div class="comment-selected-files-${call.id} space-y-1"></div>
+                                    </div>
+                                    
+                                    <div class="flex justify-end gap-2">
+                                        <button data-id="${call.id}" class="add-comment-btn px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none">
+                                            <i class="fas fa-plus mr-1"></i>Add Comment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            call.status === 'Completed' ? 'bg-green-100 text-green-800' : 
+                            call.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
+                            call.status === 'Not Received Call' ? 'bg-red-100 text-red-800' :
+                            call.status === 'Followed Up' ? 'bg-green-100 text-green-800' :
+                            'bg-blue-100 text-blue-800'
+                        }">
+                            ${call.status}
+                        </span>
+                        <div class="mt-1">
+                            <select data-id="${call.id}" class="status-dropdown px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                <option value="Pending" ${call.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Followed Up" ${call.status === 'Followed Up' ? 'selected' : ''}>Follow Up</option>
+                                <option value="Not Received Call" ${call.status === 'Not Received Call' ? 'selected' : ''}>Not Answered</option>
+                                <option value="Completed" ${call.status === 'Completed' ? 'selected' : ''}>Complete</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button data-id="${call.id}" class="text-red-600 hover:text-red-900 delete-btn">Delete</button>
+                    </td>
+                `;
+                callLogBody.appendChild(tr);
+            });
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUserId = user.uid;
+                loadDropdownOptions(); // Load saved dropdown options
+                setupDropdownEvents(); // Setup custom dropdown events
+                
+                const callsRef = collection(db, `users/${currentUserId}/calls`);
+                onSnapshot(query(callsRef, orderBy("createdAt", "desc")), (snapshot) => {
+                    allCalls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    filteredCalls = [...allCalls];
+                    renderCallLog(filteredCalls);
+                    updateStatusCards(filteredCalls);
+                });
+            } else {
+                signInAnonymously(auth).catch(console.error);
+            }
+        });
+
+        addCallForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUserId) return;
+
+            const callData = {
+                callerName: addCallForm['ct-caller-name'].value,
+                callerNumber: addCallForm['ct-caller-number'].value,
+                personToContact: personToContactInput.value,
+                operatorName: operatorNameInput.value,
+                priority: addCallForm['ct-priority'].value,
+                note: addCallForm['ct-call-note'].value,
+                status: 'Pending',
+                createdAt: new Date()
+            };
+            await addDoc(collection(db, `users/${currentUserId}/calls`), callData);
+            addCallForm.reset();
+        });
+
+        callLogBody.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            if (!id || !currentUserId) return;
+
+            const docRef = doc(db, `users/${currentUserId}/calls`, id);
+            
+            if (e.target.classList.contains('follow-up-btn')) {
+                // Update status to Followed Up and add follow-up timestamp
+                await updateDoc(docRef, { 
+                    status: 'Followed Up',
+                    followedUpAt: new Date()
+                });
+            }
+            
+            if (e.target.classList.contains('not-received-btn')) {
+                // Update status to Not Received Call and add timestamp
+                await updateDoc(docRef, { 
+                    status: 'Not Received Call',
+                    notReceivedAt: new Date()
+                });
+            }
+            
+            if (e.target.classList.contains('complete-btn')) {
+                // Update status to Completed and add completion timestamp
+                await updateDoc(docRef, { 
+                    status: 'Completed',
+                    completedAt: new Date()
+                });
+            }
+            
+            if (e.target.classList.contains('delete-btn')) {
+                if (confirm('Are you sure you want to delete this call?')) {
+                    await deleteDoc(docRef);
+                }
+            }
+            
+            // Handle comment button click (open modal)
+            if (e.target.classList.contains('comment-btn') || e.target.closest('.comment-btn')) {
+                const modal = document.querySelector(`.comment-modal-${id}`);
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                
+                // Add direct event listener to close button as backup
+                const closeBtn = modal.querySelector('.close-comment-modal');
+                if (closeBtn) {
+                    closeBtn.onclick = function() {
+                        modal.classList.add('hidden');
+                        document.body.style.overflow = 'auto';
+                    };
+                }
+            }
+            
+            // Handle close modal - check for close button or its child elements
+            const closeButton = e.target.closest('.close-comment-modal');
+            if (closeButton) {
+                console.log('Close button clicked!', closeButton); // Debug log
+                const modalId = closeButton.dataset.id;
+                console.log('Modal ID:', modalId); // Debug log
+                const modal = document.querySelector(`.comment-modal-${modalId}`);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = 'auto'; // Restore scrolling
+                    console.log('Modal closed successfully'); // Debug log
+                } else {
+                    console.log('Modal not found!'); // Debug log
+                }
+                return; // Prevent other event handlers
+            }
+            
+            // Handle click outside modal to close
+            if (e.target.classList.contains('comment-modal-' + id)) {
+                const modal = e.target;
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto'; // Restore scrolling
+            }
+            
+            // Handle add comment
+            if (e.target.classList.contains('add-comment-btn')) {
+                const textarea = document.querySelector(`.comment-edit-${id} textarea`);
+                const commentText = textarea.value.trim();
+                
+                if (commentText || (commentSelectedFiles.get(id) && commentSelectedFiles.get(id).length > 0)) {
+                    try {
+                        // Get current comment history or create new array
+                        const currentCall = allCalls.find(call => call.id === id);
+                        const currentHistory = currentCall?.commentHistory || [];
+                        const commentIndex = currentHistory.length;
+                        const files = commentSelectedFiles.get(id) || [];
+                        
+                        // Create temporary comment ID for tracking
+                        const tempCommentId = `temp_${Date.now()}`;
+                        
+                        // Create comment with placeholder attachments
+                        const newComment = {
+                            text: commentText,
+                            timestamp: new Date(),
+                            attachments: files.map(file => ({
+                                name: file.name,
+                                size: file.size,
+                                type: file.type,
+                                url: null, // Will be updated after upload
+                                uploading: true,
+                                tempId: tempCommentId
+                            }))
+                        };
+                        
+                        const updatedHistory = [...currentHistory, newComment];
+                        
+                        // INSTANTLY save comment to Firebase (without waiting for file uploads)
+                        await updateDoc(docRef, { 
+                            commentHistory: updatedHistory,
+                            lastUpdated: new Date()
+                        });
+                        
+                        // Clear form immediately
+                        textarea.value = '';
+                        const originalFiles = [...files]; // Keep reference for upload
+                        commentSelectedFiles.delete(id);
+                        displayCommentSelectedFiles(id);
+                        
+                        // Update comment count in button
+                        const commentBtn = document.querySelector(`[data-id="${id}"].comment-btn`);
+                        if (commentBtn) {
+                            commentBtn.textContent = `Add Comment (${updatedHistory.length})`;
+                        }
+                        
+                        // Close modal immediately
+                        const modal = document.querySelector(`.comment-modal-${id}`);
+                        modal.classList.add('hidden');
+                        document.body.style.overflow = 'auto';
+                        
+                        // Show instant success feedback
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                        successMsg.textContent = 'Comment added! Files uploading...';
+                        document.body.appendChild(successMsg);
+                        setTimeout(() => {
+                            if (document.body.contains(successMsg)) {
+                                document.body.removeChild(successMsg);
+                            }
+                        }, 2000);
+                        
+                        // Upload files in background (non-blocking)
+                        if (originalFiles.length > 0) {
+                            uploadFilesInBackground(id, commentIndex, originalFiles, tempCommentId);
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error adding comment:', error);
+                        
+                        // Show error feedback
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                        errorMsg.textContent = 'Error adding comment. Please try again.';
+                        document.body.appendChild(errorMsg);
+                        setTimeout(() => {
+                            if (document.body.contains(errorMsg)) {
+                                document.body.removeChild(errorMsg);
+                            }
+                        }, 3000);
+                    }
+                }
+            }
+            
+            // Handle edit individual comment
+            if (e.target.classList.contains('edit-comment-item-btn') || e.target.closest('.edit-comment-item-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target.closest('.edit-comment-item-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = btn.dataset.commentIndex;
+                
+                console.log('Edit button clicked:', callId, commentIndex); // Debug
+                
+                const commentText = document.querySelector(`.comment-text-${callId}-${commentIndex}`);
+                const commentEdit = document.querySelector(`.comment-edit-${callId}-${commentIndex}`);
+                
+                if (commentText && commentEdit) {
+                    commentText.classList.add('hidden');
+                    commentEdit.classList.remove('hidden');
+                    
+                    const textarea = commentEdit.querySelector('textarea');
+                    if (textarea) {
+                        textarea.focus();
+                    }
+                } else {
+                    console.log('Elements not found:', commentText, commentEdit);
+                }
+            }
+            
+            // Handle save edited comment
+            if (e.target.classList.contains('save-edit-btn') || e.target.closest('.save-edit-btn')) {
+                const btn = e.target.closest('.save-edit-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = parseInt(btn.dataset.commentIndex);
+                
+                const textarea = document.querySelector(`.comment-edit-${callId}-${commentIndex} textarea`);
+                const newText = textarea.value.trim();
+                
+                if (newText) {
+                    // Get current call and update specific comment
+                    const currentCall = allCalls.find(call => call.id === callId);
+                    const updatedHistory = [...currentCall.commentHistory];
+                    updatedHistory[commentIndex] = {
+                        ...updatedHistory[commentIndex],
+                        text: newText,
+                        editedAt: new Date()
+                    };
+                    
+                    // Save to Firebase
+                    const docRef = doc(db, `users/${currentUserId}/calls`, callId);
+                    await updateDoc(docRef, { 
+                        commentHistory: updatedHistory,
+                        lastUpdated: new Date()
+                    });
+                    
+                    // Hide edit mode
+                    const commentText = document.querySelector(`.comment-text-${callId}-${commentIndex}`);
+                    const commentEdit = document.querySelector(`.comment-edit-${callId}-${commentIndex}`);
+                    commentText.classList.remove('hidden');
+                    commentEdit.classList.add('hidden');
+                }
+            }
+            
+            // Handle cancel edit comment
+            if (e.target.classList.contains('cancel-edit-btn') || e.target.closest('.cancel-edit-btn')) {
+                const btn = e.target.closest('.cancel-edit-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = btn.dataset.commentIndex;
+                
+                const commentText = document.querySelector(`.comment-text-${callId}-${commentIndex}`);
+                const commentEdit = document.querySelector(`.comment-edit-${callId}-${commentIndex}`);
+                
+                commentText.classList.remove('hidden');
+                commentEdit.classList.add('hidden');
+            }
+            
+            // Handle delete individual comment
+            if (e.target.classList.contains('delete-comment-item-btn') || e.target.closest('.delete-comment-item-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target.closest('.delete-comment-item-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = parseInt(btn.dataset.commentIndex);
+                
+                console.log('Delete button clicked:', callId, commentIndex); // Debug
+                
+                if (confirm('Are you sure you want to delete this comment?')) {
+                    try {
+                        // Get current call and remove specific comment
+                        const currentCall = allCalls.find(call => call.id === callId);
+                        if (currentCall && currentCall.commentHistory) {
+                            const updatedHistory = currentCall.commentHistory.filter((_, index) => index !== commentIndex);
+                            
+                            // Save to Firebase
+                            const docRef = doc(db, `users/${currentUserId}/calls`, callId);
+                            await updateDoc(docRef, { 
+                                commentHistory: updatedHistory,
+                                lastUpdated: new Date()
+                            });
+                            
+                            console.log('Comment deleted successfully');
+                            
+                            // Update comment count in button
+                            const commentBtn = document.querySelector(`[data-id="${callId}"].comment-btn`);
+                            if (commentBtn) {
+                                commentBtn.textContent = `Add Comment (${updatedHistory.length})`;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error deleting comment:', error);
+                    }
+                }
+            }
+        });
+
+        // Function to preview attachment from URL
+        function previewAttachmentFromUrl(url, name, type) {
+            const modal = document.createElement('div');
+            modal.className = 'preview-modal';
+            modal.innerHTML = `
+                <div class="preview-content">
+                    <div class="preview-header">
+                        <span class="font-medium text-gray-900">${name}</span>
+                        <button class="preview-close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="preview-body">
+                        <div id="preview-content-area">Loading preview...</div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            
+            // Close modal events
+            modal.querySelector('.preview-close').addEventListener('click', () => {
+                document.body.removeChild(modal);
+                document.body.style.overflow = 'auto';
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Generate preview content
+            const previewArea = modal.querySelector('#preview-content-area');
+            const fileType = (type || '').toLowerCase();
+            
+            if (fileType.startsWith('image/')) {
+                previewArea.innerHTML = `<img src="${url}" class="preview-image" alt="${name}">`;
+            } else if (fileType === 'application/pdf') {
+                previewArea.innerHTML = `
+                    <embed src="${url}" type="application/pdf" width="100%" height="500px">
+                    <p class="mt-4 text-center text-gray-600">
+                        <a href="${url}" target="_blank" class="text-blue-600 hover:underline">
+                            <i class="fas fa-external-link-alt mr-1"></i>Open in new tab
+                        </a>
+                    </p>
+                `;
+            } else if (fileType.startsWith('text/') || fileType === 'application/json') {
+                // For text files, we'll need to fetch the content
+                fetch(url)
+                    .then(response => response.text())
+                    .then(text => {
+                        previewArea.innerHTML = `<pre class="preview-text">${text}</pre>`;
+                    })
+                    .catch(() => {
+                        previewArea.innerHTML = `
+                            <div class="text-center py-8">
+                                <p class="text-gray-600 mb-2">Cannot preview this file</p>
+                                <a href="${url}" target="_blank" class="text-blue-600 hover:underline">
+                                    <i class="fas fa-external-link-alt mr-1"></i>Open in new tab
+                                </a>
+                            </div>
+                        `;
+                    });
+            } else {
+                previewArea.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="${getFileIcon(name)} text-6xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 mb-2">Preview not available for this file type</p>
+                        <p class="text-sm text-gray-500">File: ${name}</p>
+                        <p class="text-sm text-gray-500">Type: ${type || 'Unknown'}</p>
+                        <div class="mt-4">
+                            <a href="${url}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                <i class="fas fa-external-link-alt mr-2"></i>Open in new tab
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Comment attachment event listeners
+        document.addEventListener('click', (e) => {
+            // Handle comment attachment button click
+            if (e.target.classList.contains('comment-attachment-btn') || e.target.closest('.comment-attachment-btn')) {
+                const btn = e.target.closest('.comment-attachment-btn');
+                const callId = btn.dataset.callId;
+                const fileInput = document.getElementById(`comment-file-input-${callId}`);
+                fileInput.click();
+            }
+            
+            // Handle comment file removal
+            if (e.target.classList.contains('comment-file-remove') || e.target.closest('.comment-file-remove')) {
+                const btn = e.target.closest('.comment-file-remove');
+                const callId = btn.dataset.callId;
+                const index = parseInt(btn.dataset.index);
+                removeCommentFile(callId, index);
+            }
+            
+            // Handle attachment preview click
+            if (e.target.classList.contains('attachment-link') && e.target.dataset.attachmentUrl) {
+                e.preventDefault();
+                const url = e.target.dataset.attachmentUrl;
+                const name = e.target.dataset.attachmentName;
+                const type = e.target.dataset.attachmentType;
+                previewAttachmentFromUrl(url, name, type);
+            }
+        });
+        
+        // Handle comment file input changes
+        document.addEventListener('change', (e) => {
+            if (e.target.id && e.target.id.startsWith('comment-file-input-')) {
+                const callId = e.target.id.replace('comment-file-input-', '');
+                const files = Array.from(e.target.files);
+                const existingFiles = commentSelectedFiles.get(callId) || [];
+                commentSelectedFiles.set(callId, [...existingFiles, ...files]);
+                displayCommentSelectedFiles(callId);
+                e.target.value = ''; // Reset input to allow selecting same file again
+            }
+        });
+
+        // Add event listener for modal content (since modals are outside callLogBody)
+        document.addEventListener('click', async (e) => {
+            // Handle edit individual comment in modal
+            if (e.target.classList.contains('edit-comment-item-btn') || e.target.closest('.edit-comment-item-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target.closest('.edit-comment-item-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = btn.dataset.commentIndex;
+                
+                console.log('Modal Edit button clicked:', callId, commentIndex);
+                
+                const commentText = document.querySelector(`.comment-text-${callId}-${commentIndex}`);
+                const commentEdit = document.querySelector(`.comment-edit-${callId}-${commentIndex}`);
+                
+                if (commentText && commentEdit) {
+                    commentText.classList.add('hidden');
+                    commentEdit.classList.remove('hidden');
+                    
+                    const textarea = commentEdit.querySelector('textarea');
+                    if (textarea) {
+                        textarea.focus();
+                    }
+                }
+            }
+            
+            // Handle save edited comment in modal
+            if (e.target.classList.contains('save-edit-btn') || e.target.closest('.save-edit-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target.closest('.save-edit-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = parseInt(btn.dataset.commentIndex);
+                
+                const textarea = document.querySelector(`.comment-edit-${callId}-${commentIndex} textarea`);
+                const newText = textarea.value.trim();
+                
+                if (newText && currentUserId) {
+                    try {
+                        const currentCall = allCalls.find(call => call.id === callId);
+                        const updatedHistory = [...currentCall.commentHistory];
+                        updatedHistory[commentIndex] = {
+                            ...updatedHistory[commentIndex],
+                            text: newText,
+                            editedAt: new Date()
+                        };
+                        
+                        const docRef = doc(db, `users/${currentUserId}/calls`, callId);
+                        await updateDoc(docRef, { 
+                            commentHistory: updatedHistory,
+                            lastUpdated: new Date()
+                        });
+                        
+                        console.log('Comment edited successfully');
+                        
+                        // Hide edit mode
+                        const commentText = document.querySelector(`.comment-text-${callId}-${commentIndex}`);
+                        const commentEdit = document.querySelector(`.comment-edit-${callId}-${commentIndex}`);
+                        commentText.classList.remove('hidden');
+                        commentEdit.classList.add('hidden');
+                    } catch (error) {
+                        console.error('Error editing comment:', error);
+                    }
+                }
+            }
+            
+            // Handle cancel edit comment in modal
+            if (e.target.classList.contains('cancel-edit-btn') || e.target.closest('.cancel-edit-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target.closest('.cancel-edit-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = btn.dataset.commentIndex;
+                
+                const commentText = document.querySelector(`.comment-text-${callId}-${commentIndex}`);
+                const commentEdit = document.querySelector(`.comment-edit-${callId}-${commentIndex}`);
+                
+                commentText.classList.remove('hidden');
+                commentEdit.classList.add('hidden');
+            }
+            
+            // Handle delete individual comment in modal
+            if (e.target.classList.contains('delete-comment-item-btn') || e.target.closest('.delete-comment-item-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = e.target.closest('.delete-comment-item-btn');
+                const callId = btn.dataset.callId;
+                const commentIndex = parseInt(btn.dataset.commentIndex);
+                
+                console.log('Modal Delete button clicked:', callId, commentIndex);
+                
+                if (confirm('Are you sure you want to delete this comment?')) {
+                    try {
+                        const currentCall = allCalls.find(call => call.id === callId);
+                        if (currentCall && currentCall.commentHistory && currentUserId) {
+                            const updatedHistory = currentCall.commentHistory.filter((_, index) => index !== commentIndex);
+                            
+                            const docRef = doc(db, `users/${currentUserId}/calls`, callId);
+                            await updateDoc(docRef, { 
+                                commentHistory: updatedHistory,
+                                lastUpdated: new Date()
+                            });
+                            
+                            console.log('Comment deleted successfully');
+                            
+                            // Update comment count in button
+                            const commentBtn = document.querySelector(`[data-id="${callId}"].comment-btn`);
+                            if (commentBtn) {
+                                commentBtn.textContent = `Add Comment (${updatedHistory.length})`;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error deleting comment:', error);
+                    }
+                }
+            }
+        });
+
+        // Handle status dropdown changes
+        callLogBody.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('status-dropdown')) {
+                const id = e.target.dataset.id;
+                const newStatus = e.target.value;
+                
+                if (!id || !currentUserId) return;
+
+                const docRef = doc(db, `users/${currentUserId}/calls`, id);
+                const updateData = { status: newStatus };
+                
+                // Add appropriate timestamp based on status
+                switch(newStatus) {
+                    case 'Followed Up':
+                        updateData.followedUpAt = new Date();
+                        break;
+                    case 'Not Received Call':
+                        updateData.notReceivedAt = new Date();
+                        break;
+                    case 'Completed':
+                        updateData.completedAt = new Date();
+                        break;
+                }
+                
+                await updateDoc(docRef, updateData);
+            }
+        });
+
+        // Add person button event listener
+        addPersonBtn.addEventListener('click', () => {
+            addDropdownOption('person');
+        });
+
+        // Add operator button event listener
+        addOperatorBtn.addEventListener('click', () => {
+            addDropdownOption('operator');
+        });
+
+
+
+        // Custom dropdown functionality
+        function setupDropdownEvents() {
+            // Person dropdown events
+            personToContactInput.addEventListener('click', () => {
+                closeAllDropdowns();
+                personToContactOptions.classList.add('show');
+            });
+            
+            // Operator dropdown events
+            operatorNameInput.addEventListener('click', () => {
+                closeAllDropdowns();
+                operatorNameOptions.classList.add('show');
+            });
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown-container')) {
+                    closeAllDropdowns();
+                }
+            });
+            
+            // Handle option selection and deletion
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('dropdown-option') || e.target.closest('.dropdown-option')) {
+                    const option = e.target.closest('.dropdown-option');
+                    const value = option.dataset.value;
+                    const type = option.dataset.type;
+                    
+                    if (e.target.classList.contains('dropdown-delete-btn') || e.target.closest('.dropdown-delete-btn')) {
+                        e.stopPropagation();
+                        deleteDropdownOption(value, type);
+                    } else {
+                        // Select the option
+                        const inputElement = type === 'person' ? personToContactInput : operatorNameInput;
+                        inputElement.value = value;
+                        closeAllDropdowns();
+                        
+                        // Update selected styling
+                        option.parentElement.querySelectorAll('.dropdown-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        option.classList.add('selected');
+                    }
+                }
+            });
+        }
+        
+        function closeAllDropdowns() {
+            personToContactOptions.classList.remove('show');
+            operatorNameOptions.classList.remove('show');
+        }
+
+        // Search functionality
+        document.querySelector('input[placeholder*="Search calls"]').addEventListener('input', filterCalls);
+        document.getElementById('date-range').addEventListener('change', filterCalls);
+
+        // Status card click event listeners
+        document.querySelectorAll('.status-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const status = e.currentTarget.dataset.status;
+                filterByStatus(status);
+            });
+        });
+
+        // Quick filter buttons
+        document.querySelectorAll('.px-4.py-1.rounded-full').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const buttonText = e.target.textContent;
+                
+                // Remove active class from all buttons
+                document.querySelectorAll('.px-4.py-1.rounded-full').forEach(b => {
+                    b.classList.remove('active', 'bg-indigo-600', 'text-white');
+                    b.classList.add('bg-gray-50', 'text-gray-600');
+                });
+                
+                if (buttonText === 'Clear Filters') {
+                    filteredCalls = [...allCalls];
+                    document.querySelector('input[placeholder*="Search calls"]').value = '';
+                    document.getElementById('date-range').value = 'All Time';
+                    // Remove active styling from status cards
+                    document.querySelectorAll('.status-card').forEach(card => {
+                        card.classList.remove('ring-2', 'ring-indigo-500');
+                    });
+                } else {
+                    // Add active class to clicked button
+                    e.target.classList.add('active', 'bg-indigo-600', 'text-white');
+                    e.target.classList.remove('bg-gray-50', 'text-gray-600');
+                    
+                    if (buttonText === "Today's Calls") {
+                        const today = new Date().toDateString();
+                        filteredCalls = allCalls.filter(call => {
+                            const callDate = call.createdAt?.toDate ? call.createdAt.toDate() : new Date(call.createdAt);
+                            return callDate.toDateString() === today;
+                        });
+                    } else if (buttonText === 'Urgent') {
+                        filteredCalls = allCalls.filter(call => call.priority === 'Urgent');
+                    } else if (buttonText === 'Overdue Follow-ups') {
+                        const now = new Date();
+                        filteredCalls = allCalls.filter(call => {
+                            const followUpDate = call.followUpDate?.toDate ? call.followUpDate.toDate() : new Date(call.followUpDate);
+                            return followUpDate < now && call.status !== 'Completed';
+                        });
+                    }
+                }
+                
+                renderCallLog(filteredCalls);
+                updateStatusCards(allCalls);
+            });
+        });
+
+    </script>
+</body>
+</html>

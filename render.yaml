@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: call-followup-tracker
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: calltracker-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+    healthCheckPath: /api/calls
+
+databases:
+  - name: calltracker-db
+    databaseName: calltracker
+    user: calltracker_user
+    plan: starter
